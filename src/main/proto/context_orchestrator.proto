@@ -1,0 +1,220 @@
+syntax = "proto3";
+
+package qinematos;
+
+option java_package = "com.qinematos.grpc";
+option java_multiple_files = true;
+option java_outer_classname = "ContextOrchestratorProto";
+
+// ============================================================================
+// Context Orchestrator Service - gRPC API for Qinematos Data Base Plane
+// ============================================================================
+
+service ContextOrchestrator {
+  // Server-streaming: watch for context updates matching topic patterns
+  rpc Watch (WatchRequest) returns (stream SubscriptionUpdate);
+
+  // Publish Arrow-encoded context to a topic
+  rpc Publish (PublishRequest) returns (PublishResponse);
+
+  // Create a new context topic
+  rpc CreateTopic (CreateTopicRequest) returns (CreateTopicResponse);
+
+  // List available topics
+  rpc ListTopics (ListTopicsRequest) returns (ListTopicsResponse);
+
+  // Get metadata for a specific topic
+  rpc GetTopic (GetTopicRequest) returns (TopicMetadata);
+
+  // Acknowledge receipt of updates
+  rpc Acknowledge (AcknowledgeRequest) returns (AcknowledgeResponse);
+
+  // Health check
+  rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// ============================================================================
+// Watch (Streaming Subscriptions)
+// ============================================================================
+
+message WatchRequest {
+  string agent_id = 1;
+  repeated string topic_patterns = 2;
+  optional int64 from_version = 3;
+  DeliveryOptions delivery_options = 4;
+  AgentCapabilities capabilities = 5;
+}
+
+message SubscriptionUpdate {
+  UpdateHeader header = 1;
+  string ipc_handle = 2;         // File path for zero-copy mmap access
+  bytes arrow_schema = 3;        // Arrow IPC schema (if requested)
+  int64 payload_size_bytes = 4;
+  LineageMetadata lineage = 5;
+  bytes inline_payload = 6;      // Only for INLINE delivery
+}
+
+message UpdateHeader {
+  string topic = 1;
+  int64 version = 2;
+  int64 timestamp_nanos = 3;
+  UpdateType update_type = 4;
+  string update_id = 5;
+}
+
+// ============================================================================
+// Publish
+// ============================================================================
+
+message PublishRequest {
+  string topic = 1;
+  bytes arrow_payload = 2;       // Arrow IPC-encoded data
+  LineageMetadata lineage = 3;
+  UpdateType update_type = 4;
+}
+
+message PublishResponse {
+  int64 version = 1;
+  string ipc_handle = 2;
+  int32 subscribers_notified = 3;
+}
+
+// ============================================================================
+// Topic Management
+// ============================================================================
+
+message CreateTopicRequest {
+  string name = 1;
+  bytes arrow_schema = 2;
+  TopicConfig config = 3;
+  string description = 4;
+}
+
+message CreateTopicResponse {
+  bool success = 1;
+  string error_message = 2;
+  TopicMetadata metadata = 3;
+}
+
+message ListTopicsRequest {
+  string pattern = 1;
+  int32 limit = 2;
+}
+
+message ListTopicsResponse {
+  repeated TopicMetadata topics = 1;
+}
+
+message GetTopicRequest {
+  string name = 1;
+}
+
+message TopicMetadata {
+  string name = 1;
+  string description = 2;
+  bytes arrow_schema = 3;
+  int64 current_version = 4;
+  int32 subscriber_count = 5;
+  int64 created_at_nanos = 6;
+}
+
+message TopicConfig {
+  RetentionPolicy retention = 1;
+  AccessControl access_control = 2;
+  int64 max_payload_size = 3;
+  bool enable_lineage_tracking = 4;
+}
+
+message RetentionPolicy {
+  int32 max_versions = 1;
+  int64 max_age_seconds = 2;
+  int32 min_versions = 3;
+}
+
+message AccessControl {
+  repeated string read_agents = 1;
+  repeated string write_agents = 2;
+  bool is_public = 3;
+}
+
+// ============================================================================
+// Acknowledgment
+// ============================================================================
+
+message AcknowledgeRequest {
+  string agent_id = 1;
+  repeated string update_ids = 2;
+}
+
+message AcknowledgeResponse {
+  bool success = 1;
+  int32 acknowledged_count = 2;
+}
+
+// ============================================================================
+// Health Check
+// ============================================================================
+
+message HealthCheckRequest {
+  bool include_diagnostics = 1;
+}
+
+message HealthCheckResponse {
+  HealthStatus status = 1;
+  int64 uptime_seconds = 2;
+  int32 active_subscriptions = 3;
+  int32 topic_count = 4;
+  MemoryUsage memory_usage = 5;
+  map<string, string> diagnostics = 6;
+}
+
+message MemoryUsage {
+  int64 context_memory_bytes = 1;
+  int64 mmap_memory_bytes = 2;
+  int64 heap_memory_bytes = 3;
+}
+
+// ============================================================================
+// Shared Types
+// ============================================================================
+
+message DeliveryOptions {
+  DeliveryMethod method = 1;
+  int32 max_batch_size = 2;
+  bool include_schema = 3;
+}
+
+message AgentCapabilities {
+  bool supports_mmap = 1;
+  bool supports_arrow = 2;
+  int64 max_memory_bytes = 3;
+  int32 process_id = 4;
+}
+
+message LineageMetadata {
+  string context_version_id = 1;
+  string source_system = 2;
+}
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum UpdateType {
+  UPDATE_TYPE_SNAPSHOT = 0;
+  UPDATE_TYPE_DELTA = 1;
+  UPDATE_TYPE_DELETE = 2;
+  UPDATE_TYPE_SCHEMA_CHANGE = 3;
+}
+
+enum DeliveryMethod {
+  DELIVERY_METHOD_IPC = 0;
+  DELIVERY_METHOD_ARROW_FLIGHT = 1;
+  DELIVERY_METHOD_INLINE = 2;
+}
+
+enum HealthStatus {
+  HEALTH_STATUS_HEALTHY = 0;
+  HEALTH_STATUS_DEGRADED = 1;
+  HEALTH_STATUS_UNHEALTHY = 2;
+}

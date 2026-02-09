@@ -1,40 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.qinematos</groupId>
-    <artifactId>qinematos</artifactId>
+    <artifactId>qinematos-data-plane</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Qinematos</name>
-    <description>Qinematos - Quarkus-based columnar data platform with Arrow, gRPC, and Xodus</description>
+    <name>Qinematos Data Base Plane</name>
+    <description>Deterministic Data Base Plane for Agentic AI - RVP Framework Implementation</description>
 
     <properties>
-        <!-- Java -->
-        <maven.compiler.release>21</maven.compiler.release>
+        <!-- Java 25 for FFM API -->
+        <java.version>25</java.version>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <!-- Quarkus -->
+        <!-- Quarkus 3.30.2 for Java 25 support -->
+        <quarkus.platform.version>3.30.2</quarkus.platform.version>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.17.5</quarkus.platform.version>
 
-        <!-- Dependency versions -->
-        <arrow.version>18.1.0</arrow.version>
-        <mutiny.version>2.7.0</mutiny.version>
+        <!-- Apache Arrow -->
+        <arrow.version>18.0.0</arrow.version>
+
+        <!-- JetBrains Xodus for Context Base persistence -->
         <xodus.version>2.0.1</xodus.version>
-        <protobuf.version>4.29.3</protobuf.version>
+
+        <!-- gRPC -->
+        <grpc.version>1.68.0</grpc.version>
+        <protobuf.version>4.28.3</protobuf.version>
 
         <!-- Plugin versions -->
         <compiler-plugin.version>3.13.0</compiler-plugin.version>
-        <surefire-plugin.version>3.5.2</surefire-plugin.version>
-        <failsafe-plugin.version>3.5.2</failsafe-plugin.version>
+        <surefire-plugin.version>3.5.0</surefire-plugin.version>
 
-        <!-- Skip integration tests by default; enable with -DskipITs=false -->
         <skipITs>true</skipITs>
     </properties>
 
@@ -51,9 +53,9 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- ================================================================ -->
-        <!-- Quarkus Core & REST                                              -->
-        <!-- ================================================================ -->
+        <!-- =================================== -->
+        <!-- Quarkus Core & Reactive (Mutiny/Vert.x) -->
+        <!-- =================================== -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-arc</artifactId>
@@ -66,26 +68,31 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-rest-jackson</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-mutiny</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-vertx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
 
-        <!-- ================================================================ -->
-        <!-- gRPC                                                             -->
-        <!-- ================================================================ -->
+        <!-- =================================== -->
+        <!-- gRPC for Streaming Watch API -->
+        <!-- =================================== -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-grpc</artifactId>
         </dependency>
 
-        <!-- ================================================================ -->
-        <!-- Health checks                                                    -->
-        <!-- ================================================================ -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-smallrye-health</artifactId>
-        </dependency>
-
-        <!-- ================================================================ -->
-        <!-- Apache Arrow (columnar in-memory format)                         -->
-        <!-- ================================================================ -->
+        <!-- =================================== -->
+        <!-- Apache Arrow - RVP "Vulgate" Format -->
+        <!-- Zero-Copy Columnar In-Memory Data -->
+        <!-- =================================== -->
         <dependency>
             <groupId>org.apache.arrow</groupId>
             <artifactId>arrow-vector</artifactId>
@@ -93,23 +100,24 @@
         </dependency>
         <dependency>
             <groupId>org.apache.arrow</groupId>
-            <artifactId>arrow-memory-unsafe</artifactId>
+            <artifactId>arrow-memory-core</artifactId>
+            <version>${arrow.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-memory-netty</artifactId>
             <version>${arrow.version}</version>
             <scope>runtime</scope>
         </dependency>
-
-        <!-- ================================================================ -->
-        <!-- Reactive (Mutiny)                                                -->
-        <!-- ================================================================ -->
         <dependency>
-            <groupId>io.smallrye.reactive</groupId>
-            <artifactId>mutiny</artifactId>
-            <version>${mutiny.version}</version>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-format</artifactId>
+            <version>${arrow.version}</version>
         </dependency>
 
-        <!-- ================================================================ -->
-        <!-- JetBrains Xodus (embedded transactional store)                   -->
-        <!-- ================================================================ -->
+        <!-- =================================== -->
+        <!-- JetBrains Xodus - RVP Persistence -->
+        <!-- =================================== -->
         <dependency>
             <groupId>org.jetbrains.xodus</groupId>
             <artifactId>xodus-environment</artifactId>
@@ -117,22 +125,42 @@
         </dependency>
         <dependency>
             <groupId>org.jetbrains.xodus</groupId>
-            <artifactId>xodus-openAPI</artifactId>
+            <artifactId>xodus-entity-store</artifactId>
             <version>${xodus.version}</version>
         </dependency>
 
-        <!-- ================================================================ -->
-        <!-- Protobuf (ByteString for proto stubs)                            -->
-        <!-- ================================================================ -->
+        <!-- =================================== -->
+        <!-- Protobuf (ByteString for proto stubs) -->
+        <!-- =================================== -->
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.version}</version>
         </dependency>
 
-        <!-- ================================================================ -->
-        <!-- Test                                                             -->
-        <!-- ================================================================ -->
+        <!-- =================================== -->
+        <!-- Health & Metrics for Production -->
+        <!-- =================================== -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-health</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- =================================== -->
+        <!-- OpenTelemetry for Distributed Tracing -->
+        <!-- =================================== -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-opentelemetry</artifactId>
+        </dependency>
+
+        <!-- =================================== -->
+        <!-- Testing -->
+        <!-- =================================== -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5</artifactId>
@@ -147,7 +175,6 @@
 
     <build>
         <plugins>
-            <!-- Quarkus Maven Plugin -->
             <plugin>
                 <groupId>${quarkus.platform.group-id}</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
@@ -155,7 +182,7 @@
                 <extensions>true</extensions>
                 <executions>
                     <execution>
-                        <goals>
+                    <goals>
                             <goal>build</goal>
                             <goal>generate-code</goal>
                             <goal>generate-code-tests</goal>
@@ -164,20 +191,38 @@
                 </executions>
             </plugin>
 
-            <!-- Compiler: Java 21 with preview features (FFM API) -->
+            <!-- Maven version enforcement - Quarkus requires Maven 3.x -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <requireMavenVersion>
+                                    <version>[3.8.0,4.0.0)</version>
+                                    <message>Maven 4.x is not yet compatible with Quarkus. Use Maven 3.8.x or 3.9.x.</message>
+                                </requireMavenVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${compiler-plugin.version}</version>
                 <configuration>
-                    <release>${maven.compiler.release}</release>
+                    <release>${java.version}</release>
                     <compilerArgs>
                         <arg>--enable-preview</arg>
                     </compilerArgs>
-                    <parameters>true</parameters>
                 </configuration>
             </plugin>
 
-            <!-- Unit tests -->
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
@@ -186,36 +231,14 @@
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>
-                    <argLine>--enable-preview</argLine>
-                </configuration>
-            </plugin>
-
-            <!-- Integration tests -->
-            <plugin>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${failsafe-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <systemPropertyVariables>
-                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
-                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                        <maven.home>${maven.home}</maven.home>
-                    </systemPropertyVariables>
-                    <argLine>--enable-preview</argLine>
+                    <argLine>--enable-preview --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/sun.nio.ch=ALL-UNNAMED -Dio.netty.tryReflectionSetAccessible=true</argLine>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
     <profiles>
-        <!-- Native image compilation with GraalVM -->
+        <!-- Native GraalVM Build Profile -->
         <profile>
             <id>native</id>
             <activation>
@@ -224,9 +247,30 @@
                 </property>
             </activation>
             <properties>
-                <skipITs>false</skipITs>
                 <quarkus.native.enabled>true</quarkus.native.enabled>
+                <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
             </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>${surefire-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
